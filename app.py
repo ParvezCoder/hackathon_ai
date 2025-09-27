@@ -1,35 +1,22 @@
 import streamlit as st
-import json
-from main import (
-    load_json_file,
-    local_pipeline,
-    room_hunter,
-    PROFILES_FILE,
-    LISTINGS_FILE,
-)
+from main import load_json_file, room_hunter, PROFILES_FILE, LISTINGS_FILE
 
-# Page Config
+# Page settings
 st.set_page_config(page_title="Room Matcher AI", page_icon="🏠", layout="wide")
+st.title("🏠 Room Matcher AI — Find Your Perfect Room & Roommate")
 
-st.title("🏠 Room Matcher AI — Smarter Student Living")
-st.write("Find your ideal roommate and housing match with AI-powered or offline rule-based matching.")
-
-# Sidebar Mode Selection
-st.sidebar.header("⚙️ Settings")
-mode = st.sidebar.radio("Choose Mode:", [ "Online (Agent SDK)", "Degraded Mode (Offline)"])
-top_n = st.sidebar.slider("Number of Matches to Show", 1, 20, 5)
-
-# Load datasets
+# Load housing listings
 try:
-    profiles = load_json_file(PROFILES_FILE)
     listings = load_json_file(LISTINGS_FILE)
 except FileNotFoundError:
-    st.error("⚠️ JSON files missing. Please place them in the same folder as app.py/main.py")
+    st.error("⚠️ housing_listings_pakistan_400.json not found!")
     st.stop()
+
+st.write("Fill in your details and get the best housing suggestions in your city.")
 
 # ---------------- FORM ----------------
 with st.form("user_profile_form"):
-    st.subheader("📋 Enter Your Information")
+    st.subheader("📋 Your Information")
 
     city = st.text_input("🏙️ City", placeholder="e.g., Karachi, Lahore, Islamabad")
     budget = st.number_input("💰 Budget (PKR)", min_value=5000, max_value=200000, step=1000)
@@ -59,33 +46,24 @@ with st.form("user_profile_form"):
         placeholder="e.g., Vegetarian, Flexible, Non-veg"
     )
 
-    submitted = st.form_submit_button("🔍 Find Matches")
+    submitted = st.form_submit_button("🔍 Find Matching Rooms")
 
 # ---------------- RESULTS ----------------
 if submitted:
     user_profile = {
         "city": city,
         "budget_PKR": budget,
-        "sleep_schedule": sleep_schedule,
-        "cleanliness": cleanliness,
-        "noise_tolerance": noise_tolerance,
-        "study_habits": study_habits,
-        "food_pref": food_pref,
     }
 
-    if mode == "Degraded Mode (Offline)":
-        st.subheader("📊 Top Matches (Offline Rule-based)")
-        with st.spinner("Finding best matches locally..."):
-            results = local_pipeline(profiles, listings, top_n=top_n)
+    st.subheader("🏠 Suggested Rooms")
+    matches = room_hunter(listings, user_profile)
 
-        if not results:
-            st.warning("No matches found.")
-        else:
-            for res in results:
-                with st.expander(f"Pair {res['pair']} — Score: {res['score']}"):
-                    st.json(res)
-
+    if not matches:
+        st.warning("No matching rooms found. Try adjusting your budget or city.")
     else:
-        st.subheader("☁️ Online Agent SDK Mode")
-        st.info("🔧 Online Agent SDK integration required. Currently running in demo mode.")
-        st.write("You can still use **Degraded Mode (Offline)** from the sidebar to see rule-based results.")
+        for room in matches:
+            with st.container():
+                st.markdown(f"### 📍 {room.get('area', 'Unknown Area')} — {room.get('city', '')}")
+                st.write(f"💰 Rent: **{room.get('monthly_rent_PKR', 'N/A')} PKR**")
+                st.write(f"🏡 Listing ID: {room.get('listing_id', 'N/A')}")
+                st.write("---")
