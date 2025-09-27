@@ -240,5 +240,36 @@ def local_pipeline(profiles_data, listings_data, top_n=5):
             })
     results_sorted = sorted(results, key=lambda x: -x["score"])
     return results_sorted[:top_n]
+# main.py (append at end)
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+def build_corpus(listings):
+    corpus = []
+    for l in listings:
+        parts = []
+        for key in ("title", "description", "city", "area", "amenities", "monthly_rent_PKR"):
+            v = l.get(key, "")
+            if isinstance(v, list):
+                v = " ".join(map(str, v))
+            parts.append(str(v))
+        corpus.append(" ".join(parts))
+    return corpus
+
+def local_match(query, listings, top_k=5):
+    """Degraded mode: lightweight offline search"""
+    if not listings:
+        return []
+    corpus = build_corpus(listings)
+    vectorizer = TfidfVectorizer(max_features=3000, stop_words="english")
+    X = vectorizer.fit_transform(corpus)
+    q_vec = vectorizer.transform([query])
+    sims = cosine_similarity(q_vec, X).flatten()
+    idx = np.argsort(-sims)[:top_k]
+    results = []
+    for i in idx:
+        results.append(listings[i])
+    return results
 
 # End of file

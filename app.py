@@ -1,8 +1,7 @@
 # app.py
 import streamlit as st
-from main import load_json_file, room_hunter, PROFILES_FILE, LISTINGS_FILE
+from main import load_json_file, room_hunter, local_match, PROFILES_FILE, LISTINGS_FILE
 
-# ---------------- PAGE SETTINGS ----------------
 st.set_page_config(page_title="Room Matcher AI", page_icon="🏠", layout="wide")
 
 st.title("🏠 Room Matcher AI")
@@ -16,37 +15,21 @@ except FileNotFoundError:
     st.error("⚠️ housing_listings_pakistan_400.json not found!")
     st.stop()
 
+# ---------------- MODE TOGGLE ----------------
+st.sidebar.title("⚙️ Settings")
+degraded = st.sidebar.checkbox("Enable Degraded Mode (offline)", value=False)
+
 # ---------------- FORM ----------------
 with st.form("user_profile_form"):
     st.subheader("📋 Your Profile")
 
     city = st.text_input("🏙️ City", placeholder="e.g., Karachi, Lahore, Islamabad")
     budget = st.number_input("💰 Budget (PKR)", min_value=5000, max_value=200000, step=1000)
-
-    sleep_schedule = st.selectbox(
-        "🛌 What is your sleep schedule?",
-        ["Early bird", "Daytime", "Night owl"]
-    )
-
-    cleanliness = st.selectbox(
-        "🧹 How tidy are you?",
-        ["Tidy", "Moderate", "Messy"]
-    )
-
-    noise_tolerance = st.selectbox(
-        "🔊 How much noise can you tolerate?",
-        ["Quiet", "Moderate", "Tolerant"]
-    )
-
-    study_habits = st.text_input(
-        "📖 What are your study habits like?",
-        placeholder="e.g., Online classes, Regular, Late-night study"
-    )
-
-    food_pref = st.text_input(
-        "🍲 Do you have any food preferences?",
-        placeholder="e.g., Vegetarian, Flexible, Non-veg"
-    )
+    sleep_schedule = st.selectbox("🛌 Sleep schedule?", ["Early bird", "Daytime", "Night owl"])
+    cleanliness = st.selectbox("🧹 How tidy are you?", ["Tidy", "Moderate", "Messy"])
+    noise_tolerance = st.selectbox("🔊 Noise tolerance?", ["Quiet", "Moderate", "Tolerant"])
+    study_habits = st.text_input("📖 Study habits", placeholder="e.g., Online classes, Regular, Late-night study")
+    food_pref = st.text_input("🍲 Food preference", placeholder="e.g., Vegetarian, Flexible, Non-veg")
 
     submitted = st.form_submit_button("🔍 Find Matching Rooms")
 
@@ -63,7 +46,15 @@ if submitted:
     }
 
     st.subheader("🏠 Suggested Rooms")
-    matches = room_hunter(listings, user_profile)
+
+    if degraded:
+        # User query string for degraded mode
+        query_str = f"{city} {budget} {sleep_schedule} {cleanliness} {noise_tolerance} {study_habits} {food_pref}"
+        matches = local_match(query_str, listings)
+        st.info("⚡ Degraded Mode active — showing offline TF-IDF matches")
+    else:
+        matches = room_hunter(listings, user_profile)
+        st.info("✨ Normal Mode active — rule-based filtering")
 
     if not matches:
         st.warning("⚠️ No matching rooms found. Try adjusting your budget or city.")
