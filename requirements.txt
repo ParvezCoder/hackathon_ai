@@ -2,3 +2,4 @@ streamlit
 python-dotenv
 openai
 openai-agents
+scikit-learn
