@@ -1,22 +1,24 @@
+# app.py
 import streamlit as st
 from main import load_json_file, room_hunter, PROFILES_FILE, LISTINGS_FILE
 
-# Page settings
+# ---------------- PAGE SETTINGS ----------------
 st.set_page_config(page_title="Room Matcher AI", page_icon="🏠", layout="wide")
-st.title("🏠 Room Matcher AI — Find Your Perfect Room & Roommate")
 
-# Load housing listings
+st.title("🏠 Room Matcher AI")
+st.subheader("Find Your Perfect Room & Roommate")
+st.write("Fill in your details below and get AI-powered housing & roommate matches.")
+
+# ---------------- LOAD DATA ----------------
 try:
     listings = load_json_file(LISTINGS_FILE)
 except FileNotFoundError:
     st.error("⚠️ housing_listings_pakistan_400.json not found!")
     st.stop()
 
-st.write("Fill in your details and get the best housing suggestions in your city.")
-
 # ---------------- FORM ----------------
 with st.form("user_profile_form"):
-    st.subheader("📋 Your Information")
+    st.subheader("📋 Your Profile")
 
     city = st.text_input("🏙️ City", placeholder="e.g., Karachi, Lahore, Islamabad")
     budget = st.number_input("💰 Budget (PKR)", min_value=5000, max_value=200000, step=1000)
@@ -53,13 +55,18 @@ if submitted:
     user_profile = {
         "city": city,
         "budget_PKR": budget,
+        "sleep_schedule": sleep_schedule,
+        "cleanliness": cleanliness,
+        "noise_tolerance": noise_tolerance,
+        "study_habits": study_habits,
+        "food_pref": food_pref
     }
 
     st.subheader("🏠 Suggested Rooms")
     matches = room_hunter(listings, user_profile)
 
     if not matches:
-        st.warning("No matching rooms found. Try adjusting your budget or city.")
+        st.warning("⚠️ No matching rooms found. Try adjusting your budget or city.")
     else:
         for room in matches:
             with st.container():
